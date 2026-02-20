@@ -419,7 +419,11 @@ class GenerateNAID:
                     params["reference_strength_multiple"].append(strength)
 
             if "model" in option: model = option["model"]
-            if "v4_prompt" in option: params["v4_prompt"].update(option["v4_prompt"])
+
+            # Handle V4 options
+            if "v4_prompt" in option:
+                params["v4_prompt"].update(option["v4_prompt"])
+                params["v4_prompt"]["caption"]["base_caption"] = positive
 
             if "character_reference_single" in option:
                 ref = option["character_reference_single"]
@@ -654,6 +658,62 @@ class V4BasePrompt:
     def convert(self, base_caption):
         return (base_caption,)
 
+class V4PromptConfig:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "use_coords": ("BOOLEAN", { "default": False }),
+                "use_order": ("BOOLEAN", { "default": False }),
+            },
+            "optional": { "option": ("NAID_OPTION",) },
+        }
+
+    RETURN_TYPES = ("NAID_OPTION",)
+    FUNCTION = "set_option"
+    CATEGORY = "NovelAI/v4"
+    def set_option(self, use_coords, use_order, option=None):
+        option = copy.deepcopy(option) if option else {}
+        if "v4_prompt" not in option:
+            option["v4_prompt"] = {}
+        option["v4_prompt"]["use_coords"] = use_coords
+        option["v4_prompt"]["use_order"] = use_order
+        return (option,)
+
+class V4CharacterCaption:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "char_caption": ("STRING", { "multiline": True }),
+                "x": ("FLOAT", { "default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01 }),
+                "y": ("FLOAT", { "default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01 }),
+            },
+            "optional": { "option": ("NAID_OPTION",) },
+        }
+
+    RETURN_TYPES = ("NAID_OPTION",)
+    FUNCTION = "set_option"
+    CATEGORY = "NovelAI/v4"
+    def set_option(self, char_caption, x, y, option=None):
+        option = copy.deepcopy(option) if option else {}
+        if "v4_prompt" not in option:
+            option["v4_prompt"] = {
+                "caption": {
+                    "base_caption": "",
+                    "char_captions": []
+                }
+            }
+        
+        char_caption_obj = {
+            "char_caption": char_caption,
+            "centers": [{"x": x, "y": y}]
+        }
+        
+        option["v4_prompt"]["caption"]["char_captions"].append(char_caption_obj)
+        return (option,)
+
+
 class V4NegativePrompt:
     @classmethod
     def INPUT_TYPES(s):
@@ -687,6 +747,8 @@ NODE_CLASS_MAPPINGS = {
     "DeclutterNAID": DeclutterAugment,
     "V4BasePrompt": V4BasePrompt,
     "V4NegativePrompt": V4NegativePrompt,
+    "V4PromptConfig": V4PromptConfig,
+    "V4CharacterCaption": V4CharacterCaption,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -708,4 +770,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DeclutterNAID": "Declutter ✒️🅝🅐🅘",
     "V4BasePrompt": "V4 Base Prompt ✒️🅝🅐🅘",
     "V4NegativePrompt": "V4 Negative Prompt ✒️🅝🅐🅘",
+    "V4PromptConfig": "V4 Prompt Config ✒️🅝🅐🅘",
+    "V4CharacterCaption": "V4 Character Caption ✒️🅝🅐🅘",
 }
