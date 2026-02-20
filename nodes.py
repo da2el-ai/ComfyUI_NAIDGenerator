@@ -3,6 +3,7 @@ import io
 from pathlib import Path
 import folder_paths
 import zipfile
+import hashlib
 import json as _json
 import copy as _copy
 
@@ -13,6 +14,8 @@ from urllib3.util.retry import Retry
 import torch
 import numpy as np
 from PIL import Image as PILImage
+
+from .utils import *
 
 TOOLTIP_LIMIT_OPUS_FREE = "Limit image size and steps for free generation by Opus."
 
@@ -153,13 +156,16 @@ class Img2ImgOption:
                 "strength": ("FLOAT", { "default": 0.70, "min": 0.01, "max": 0.99, "step": 0.01, "display": "number" }),
                 "noise": ("FLOAT", { "default": 0.00, "min": 0.00, "max": 0.99, "step": 0.02, "display": "number" }),
             },
+            "optional": { 
+                "option": ("NAID_OPTION",),
+            },
         }
 
     RETURN_TYPES = ("NAID_OPTION",)
     FUNCTION = "set_option"
     CATEGORY = "NovelAI"
     def set_option(self, image, strength, noise):
-        option = {}
+        option = copy.deepcopy(option) if option else {}
         option["img2img"] = (image, strength, noise)
         return (option,)
 
@@ -172,17 +178,24 @@ class InpaintingOption:
                 "mask": ("IMAGE",),
                 "add_original_image": ("BOOLEAN", { "default": True }),
             },
+            "optional": { 
+                "option": ("NAID_OPTION",),
+            },
         }
 
     RETURN_TYPES = ("NAID_OPTION",)
     FUNCTION = "set_option"
     CATEGORY = "NovelAI"
-    def set_option(self, image, mask, add_original_image):
-        option = {}
+    def set_option(self, image, mask, add_original_image, option):
+        option = copy.deepcopy(option) if option else {}
         option["infill"] = (image, mask, add_original_image)
         return (option,)
 
 class VibeTransferOption:
+    def __init__(self):
+        self.access_token = get_access_token()
+        self.output_dir = folder_paths.get_output_directory()
+
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -190,17 +203,49 @@ class VibeTransferOption:
                 "image": ("IMAGE",),
                 "information_extracted": ("FLOAT", { "default": 1.0, "min": 0.01, "max": 1.0, "step": 0.01, "display": "number" }),
                 "strength": ("FLOAT", { "default": 0.6, "min": 0.01, "max": 1.0, "step": 0.01, "display": "number" }),
+                "autosave_filename_prefix": ("STRING", { "default": "NAI_encodings/NAI_encoding", "tooltip": "File name for saving encodings" }),
             },
-            "optional": { "option": ("NAID_OPTION",) },
+            "optional": { 
+                "option": ("NAID_OPTION",),
+                "mask": ("IMAGE",), 
+            },
         }
     RETURN_TYPES = ("NAID_OPTION",)
     FUNCTION = "set_option"
     CATEGORY = "NovelAI"
-    def set_option(self, image, information_extracted, strength, option=None):
+    def set_option(self, image, information_extracted, strength, autosave_filename_prefix="NAI_encodings/NAI_encoding", option=None, mask=""):
         option = copy.deepcopy(option) if option else {}
         if "vibe" not in option:
             option["vibe"] = []
-        option["vibe"].append((image, information_extracted, strength))
+
+        # modelが指定されていない場合はデフォルトでnai-diffusion-4として扱う
+        model = option.get("model", "nai-diffusion-4-5-full")
+        if "nai-diffusion-4" in model:
+            try:
+                base64image=image_to_base64(image)
+                base64mask=""
+                if mask != "":
+                    base64mask=naimask_to_base64(mask)
+                full_output_folder, filename, counter, subfolder, filename_prefix = folder_paths.get_save_image_path(autosave_filename_prefix, self.output_dir)
+                hashseed=base64image+""+base64mask
+                encodingname = hashlib.md5(hashseed.encode('utf-8')).hexdigest()
+                valname = str(information_extracted).replace(".","-")[:4]
+                file = f"{filename}_{encodingname}_{valname}.txt"
+                d = Path(full_output_folder)
+                d.mkdir(exist_ok=True)
+                if (d / file).exists():
+                    encoding = (d / file).read_text()
+                else:
+                    encoding = generate_encoding(self.access_token, base64image, model, information_extracted, base64mask, 20, 1)
+
+                    ## save encoding to comfy output dir
+                    (d / file).write_text(encoding)
+
+                option["vibe"].append((encoding, information_extracted, strength))
+            except Exception as e:
+                raise e
+        else:
+            option["vibe"].append((image, information_extracted, strength))
         return (option,)
 
 class NetworkOption:
@@ -361,15 +406,29 @@ class GenerateNAID:
                 params["mask"] = naimask_to_base64(resize_to_naimask(mask, (width, height), "4" in model))
                 params["add_original_image"] = add_original_image
 
+            # if "vibe" in option:
+            #     for vibe in option["vibe"]:
+            #         vimg, information_extracted, strength = vibe
+            #         params["reference_image_multiple"].append(image_to_base64(resize_image(vimg, (width, height))))
+            #         params["reference_information_extracted_multiple"].append(information_extracted)
+            #         params["reference_strength_multiple"].append(strength)
             if "vibe" in option:
                 for vibe in option["vibe"]:
-                    vimg, information_extracted, strength = vibe
-                    params["reference_image_multiple"].append(image_to_base64(resize_image(vimg, (width, height))))
+                    image, information_extracted, strength = vibe
+                    if "nai-diffusion-4" in model:
+                        params["reference_image_multiple"].append(image)
+                    else:
+                        params["reference_image_multiple"].append(image_to_base64(resize_image(image, (width, height))))
+
                     params["reference_information_extracted_multiple"].append(information_extracted)
                     params["reference_strength_multiple"].append(strength)
 
             if "model" in option: model = option["model"]
-            if "v4_prompt" in option: params["v4_prompt"].update(option["v4_prompt"])
+
+            # Handle V4 options
+            if "v4_prompt" in option:
+                params["v4_prompt"].update(option["v4_prompt"])
+                params["v4_prompt"]["caption"]["base_caption"] = positive
 
             if "character_reference_single" in option:
                 ref = option["character_reference_single"]
@@ -604,6 +663,62 @@ class V4BasePrompt:
     def convert(self, base_caption):
         return (base_caption,)
 
+class V4PromptConfig:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "use_coords": ("BOOLEAN", { "default": False }),
+                "use_order": ("BOOLEAN", { "default": False }),
+            },
+            "optional": { "option": ("NAID_OPTION",) },
+        }
+
+    RETURN_TYPES = ("NAID_OPTION",)
+    FUNCTION = "set_option"
+    CATEGORY = "NovelAI/v4"
+    def set_option(self, use_coords, use_order, option=None):
+        option = copy.deepcopy(option) if option else {}
+        if "v4_prompt" not in option:
+            option["v4_prompt"] = {}
+        option["v4_prompt"]["use_coords"] = use_coords
+        option["v4_prompt"]["use_order"] = use_order
+        return (option,)
+
+class V4CharacterCaption:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "char_caption": ("STRING", { "multiline": True }),
+                "x": ("FLOAT", { "default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01 }),
+                "y": ("FLOAT", { "default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01 }),
+            },
+            "optional": { "option": ("NAID_OPTION",) },
+        }
+
+    RETURN_TYPES = ("NAID_OPTION",)
+    FUNCTION = "set_option"
+    CATEGORY = "NovelAI/v4"
+    def set_option(self, char_caption, x, y, option=None):
+        option = copy.deepcopy(option) if option else {}
+        if "v4_prompt" not in option:
+            option["v4_prompt"] = {
+                "caption": {
+                    "base_caption": "",
+                    "char_captions": []
+                }
+            }
+        
+        char_caption_obj = {
+            "char_caption": char_caption,
+            "centers": [{"x": x, "y": y}]
+        }
+        
+        option["v4_prompt"]["caption"]["char_captions"].append(char_caption_obj)
+        return (option,)
+
+
 class V4NegativePrompt:
     @classmethod
     def INPUT_TYPES(s):
@@ -637,6 +752,8 @@ NODE_CLASS_MAPPINGS = {
     "DeclutterNAID": DeclutterAugment,
     "V4BasePrompt": V4BasePrompt,
     "V4NegativePrompt": V4NegativePrompt,
+    "V4PromptConfig": V4PromptConfig,
+    "V4CharacterCaption": V4CharacterCaption,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -658,4 +775,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "DeclutterNAID": "Declutter ✒️🅝🅐🅘",
     "V4BasePrompt": "V4 Base Prompt ✒️🅝🅐🅘",
     "V4NegativePrompt": "V4 Negative Prompt ✒️🅝🅐🅘",
+    "V4PromptConfig": "V4 Prompt Config ✒️🅝🅐🅘",
+    "V4CharacterCaption": "V4 Character Caption ✒️🅝🅐🅘",
 }
