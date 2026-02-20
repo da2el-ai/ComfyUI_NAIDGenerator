@@ -1,11 +1,29 @@
+<a href="README.md">English</a> | <a href="README_ja.md">日本語</a>
+
 # ComfyUI_NAIDGenerator
 
 A [ComfyUI](https://github.com/comfyanonymous/ComfyUI) extension for generating images via the NovelAI API.
 
 ## Installation
 
-- `git clone https://github.com/bedovyy/ComfyUI_NAIDGenerator` into the `custom_nodes` directory.
-- or 'Install via Git URL' from [Comfyui Manager](https://github.com/ltdrdata/ComfyUI-Manager)
+This extension cannot be installed via ComfyUI Manager.  
+Please open a terminal and run the following commands:
+
+```
+# Install into ComfyUI custom_nodes folder
+cd {ComfyUI_install_folder}/custom_nodes
+git clone https://github.com/da2el-ai/ComfyUI_NAIDGenerator
+
+# Activate virtual environment
+# For Windows
+..\venv\Scripts\activate
+
+# For Mac / Linux
+source ../venv/bin/activate
+
+# Install required libraries
+pip install -r requirements.txt
+```
 
 ## Setting up NAI account
 
@@ -76,6 +94,16 @@ Use the `CharacterReferenceOptionNAID` node to guide the generation using a sing
 -   **fidelity:** Controls how strictly the generation should adhere to the reference image. The developers state that `primary_strength` is always kept at `1.0`, while `secondary_strength` is calculated as $1.0 - \text{fidelity}$.
 
 **Note:** The reference image will be automatically letterboxed to an accepted NAI canvas size to preserve its aspect ratio.
+
+### Character Caption
+
+Use the `V4CharacterCaptionNAID` node to specify prompts and positions for individual characters.
+You can use multiple `V4CharacterCaptionNAID` nodes by connecting them to `NAID_OPTION`.
+
+- **x:** Horizontal coordinate, specified from left to right as `0` to `1`
+- **y:** Vertical coordinate, specified from top to bottom as `0` to `1`
+
+![image](./img/character-caption.png)
 
 ### ModelOption
 
