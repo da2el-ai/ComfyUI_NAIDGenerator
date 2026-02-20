@@ -156,13 +156,16 @@ class Img2ImgOption:
                 "strength": ("FLOAT", { "default": 0.70, "min": 0.01, "max": 0.99, "step": 0.01, "display": "number" }),
                 "noise": ("FLOAT", { "default": 0.00, "min": 0.00, "max": 0.99, "step": 0.02, "display": "number" }),
             },
+            "optional": { 
+                "option": ("NAID_OPTION",),
+            },
         }
 
     RETURN_TYPES = ("NAID_OPTION",)
     FUNCTION = "set_option"
     CATEGORY = "NovelAI"
     def set_option(self, image, strength, noise):
-        option = {}
+        option = copy.deepcopy(option) if option else {}
         option["img2img"] = (image, strength, noise)
         return (option,)
 
@@ -175,13 +178,16 @@ class InpaintingOption:
                 "mask": ("IMAGE",),
                 "add_original_image": ("BOOLEAN", { "default": True }),
             },
+            "optional": { 
+                "option": ("NAID_OPTION",),
+            },
         }
 
     RETURN_TYPES = ("NAID_OPTION",)
     FUNCTION = "set_option"
     CATEGORY = "NovelAI"
-    def set_option(self, image, mask, add_original_image):
-        option = {}
+    def set_option(self, image, mask, add_original_image, option):
+        option = copy.deepcopy(option) if option else {}
         option["infill"] = (image, mask, add_original_image)
         return (option,)
 
