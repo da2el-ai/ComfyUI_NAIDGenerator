@@ -68,6 +68,23 @@ def generate_image(access_token, prompt, model, action, parameters, timeout=None
     response.raise_for_status()
     return response.content
 
+def generate_encoding(access_token, image, model, extract, mask="", timeout=None, retry=None):
+    data = { "image": image, "model": model, "information_extracted": extract}
+
+    if len(mask) > 1:
+        data["mask"] = mask
+        data["crop_to_mask"] = True
+    request = requests
+    if retry is not None and retry > 1:
+        retries = Retry(total=retry, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504], allowed_methods=["POST"])
+        session = requests.Session()
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        request = session
+
+    response = request.post(f"{BASE_URL}/ai/encode-vibe", json=data, headers={ "Authorization": f"Bearer {access_token}" }, timeout=timeout)
+    response.raise_for_status()
+    return base64.b64encode(response.content).decode()
+
 def augment_image(access_token, req_type, width, height, image, options={}, timeout=None, retry=None):
     data = { "req_type": req_type, "width": width, "height": height, "image": image }
     if options:
