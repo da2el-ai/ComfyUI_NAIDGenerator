@@ -212,9 +212,8 @@ class VibeTransferOption:
         if "vibe" not in option:
             option["vibe"] = []
 
-        model = ""
-        if "model" in option:
-            model = option["model"]
+        # modelが指定されていない場合はデフォルトでnai-diffusion-4として扱う
+        model = option.get("model", "nai-diffusion-4-5-full")
         if "nai-diffusion-4" in model:
             try:
                 base64image=image_to_base64(image)
