@@ -1,10 +1,21 @@
 
 <a href="README.md">English</a> | <a href="README_ja.md">日本語</a>
 
-
 # ComfyUI_NAIDGenerator
 
 NovelAI API を使って画像生成を行うための [ComfyUI](https://github.com/comfyanonymous/ComfyUI) 拡張機能です。
+
+## オリジナルの NAIDGenerator との違い。
+
+このリポジトリは、[NAIDGenerator](https://github.com/bedovyy/ComfyUI_NAIDGenerator) から派生した改造版です。
+
+オリジナルとは下記のような違いがあります。
+
+- `VibeTransferOptionNAID` のV4系モデルに対応
+- `V4CharacterCaption` ノード追加
+- `Img2ImgOption` / `InpaintingOption` にオプション入力を追加
+- `OptionConcatNAID` ノード追加
+- ComfyUI Managerからインストールできないので手動で `git clone` する必要がある
 
 ## インストール
 
@@ -164,6 +175,18 @@ ComfyUI では強調に `()` または `(word:weight)` を使いますが、Nove
 `LineArtNAID`、`EmotionNAID`、`RemoveBGNAID` などのディレクターツールは `NovelAI/director_tools` カテゴリにあります。
 
 ![augment_example](https://github.com/user-attachments/assets/5833e9fb-f92e-4d53-9069-58ca8503a3e7)
+
+
+### Option Concat
+
+optionを結合するためのノードです。
+
+基本的にはノード間のディジーチェーンでoptionを結合しますが、1箇所に集中したいという特殊な時に使用します。
+
+<img src="./img/option-concat.png">
+
+
+
 
 ### V4 / V4.5 対応
 

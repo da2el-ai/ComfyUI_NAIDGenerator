@@ -729,6 +729,30 @@ class V4NegativePrompt:
     def convert(self, negative_caption):
         return (negative_caption,)
 
+class OptionConcat:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "optional": {
+                "option1": ("NAID_OPTION",),
+                "option2": ("NAID_OPTION",),
+                "option3": ("NAID_OPTION",),
+                "option4": ("NAID_OPTION",),
+                "option5": ("NAID_OPTION",),
+            },
+        }
+
+    RETURN_TYPES = ("NAID_OPTION",)
+    FUNCTION = "concat"
+    CATEGORY = "NovelAI/utils"
+
+    def concat(self, option1=None, option2=None, option3=None, option4=None, option5=None):
+        result = {}
+        for option in (option1, option2, option3, option4, option5):
+            if option:
+                result.update(copy.deepcopy(option))
+        return (result,)
+
 # -------------------------------------------------
 # Registration
 # -------------------------------------------------
@@ -754,6 +778,7 @@ NODE_CLASS_MAPPINGS = {
     "V4NegativePrompt": V4NegativePrompt,
     "V4PromptConfig": V4PromptConfig,
     "V4CharacterCaption": V4CharacterCaption,
+    "OptionConcatNAID": OptionConcat,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -777,4 +802,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "V4NegativePrompt": "V4 Negative Prompt ✒️🅝🅐🅘",
     "V4PromptConfig": "V4 Prompt Config ✒️🅝🅐🅘",
     "V4CharacterCaption": "V4 Character Caption ✒️🅝🅐🅘",
+    "OptionConcatNAID": "Option Concat ✒️🅝🅐🅘",
 }

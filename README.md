@@ -4,6 +4,18 @@
 
 A [ComfyUI](https://github.com/comfyanonymous/ComfyUI) extension for generating images via the NovelAI API.
 
+## Differences from the original NAIDGenerator
+
+This repository is a modified fork of [NAIDGenerator](https://github.com/bedovyy/ComfyUI_NAIDGenerator).
+
+Differences from the original include:
+
+- `VibeTransferOptionNAID` now supports V4 series models
+- Added `V4CharacterCaption` node
+- Added option input to `Img2ImgOption` / `InpaintingOption`
+- Added `OptionConcatNAID` node
+- Cannot be installed via ComfyUI Manager — manual `git clone` is required
+
 ## Installation
 
 This extension cannot be installed via ComfyUI Manager.  
@@ -157,6 +169,14 @@ ComfyUI uses `()` or `(word:weight)` for emphasis, while NovelAI uses `{}` and `
 You can find director tools like `LineArtNAID`, `EmotionNAID`, and `RemoveBGNAID` in the `NovelAI/director_tools` category.
 
 ![augment_example](https://github.com/user-attachments/assets/5833e9fb-f92e-4d53-9069-58ca8503a3e7)
+
+### Option Concat
+
+A utility node for merging multiple options into one.
+
+Options are normally chained between nodes in a daisy-chain, but this node is useful in special cases where you want to converge multiple option branches into a single point.
+
+<img src="./img/option-concat.png">
 
 ### V4 / V4.5 Support
 
