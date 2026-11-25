@@ -124,7 +124,7 @@ Use the `MergeOptionsNAID` node to combine up to 4 `NAID_OPTION` inputs into one
 
 Options are merged in order from `option_1` to `option_4`.
 
--   **Stackable options:** `VibeTransferOptionNAID` and `CharacterPromptOptionNAID` entries are all stacked, just as they are when chained (entries from `option_1` come first).
+-   **Stackable options:** `VibeTransferOptionNAID`, `CharacterPromptOptionNAID`, and `CharacterReferenceV5OptionNAID` entries are all stacked, just as they are when chained (entries from `option_1` come first).
 -   **Other options:** If the same kind of option, such as `ModelOptionNAID` or `NetworkOption`, is present in multiple inputs, the higher-numbered input takes precedence (`option_4` has the highest priority).
 
 **Note:** If you merge both `Img2ImgOptionNAID` and `InpaintingOptionNAID`, Img2Img takes precedence in `GenerateNAID`, as before.

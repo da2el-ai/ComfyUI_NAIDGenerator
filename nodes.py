@@ -344,7 +344,7 @@ class CharacterPromptOption:
 
 class MergeOptions:
     # Keys whose lists are concatenated (stacked across options)
-    APPEND_KEYS = ("vibe", "characters")
+    APPEND_KEYS = ("vibe", "characters", "character_references")
     # Keys whose dicts are merged with update()
     MERGE_KEYS = ("v4_prompt",)
 
